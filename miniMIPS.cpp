@@ -31,6 +31,12 @@ int findFunct(string binStr);
 
 int findImmediate(string binStr);
 
+int lookupR(const Instructions instr[], int numInst, int opCode, int functCode);
+
+int lookupI(const Instructions instr[], int numInst, int opCode);
+
+int lookupRegister(const RegTable registers[], int numRegs, int regAdd);
+
 int main()
 {
     Instructions instr[5];
@@ -73,7 +79,7 @@ int main()
     if (!file.is_open())
     {
         cout << "Error: could not open file." << endl;
-        return 1;
+        return -1;
     }
     string line;
     while(getline(file, line))
@@ -84,82 +90,85 @@ int main()
         int opCode = findOpCode(binLine);
         int RS = findRS(binLine);
         int RT = findRT(binLine);
-        string instName = "";
+
+        // R-Type
         if (opCode == 0)
         {
             //cout << "R-Type" << endl;
             int RD = findRD(binLine);
             int shift = findShAmt(binLine);
             int funct = findFunct(binLine);
-            for (int i = 0; i < 5; i++)
+
+            // instruction
+            int instNum = lookupR(instr, 5, opCode, funct);
+            if (instNum == -1)
             {
-                if (instr[i].code == 0 && instr[i].functionCode == funct)
-                {
-                    cout << instr[i].inst << " ";
-                    instName = instr[i].inst;
-                    break;
-                }
+                cout << "Error: instruction not found" << endl;
+                return -1;
             }
+            cout << instr[instNum].inst << " ";
+
             // RD
-            for (int i = 0; i < 6; i++)
+            int RDNum = lookupRegister(registers, 6, RD);
+            if (RDNum == -1)
             {
-                if (registers[i].address == RD)
-                {
-                    cout << registers[i].reg << ", ";
-                    break;
-                }
+                cout << "Error: RD not found" << endl;
+                return -1;
             }
+            cout << registers[RDNum].reg << ", ";
+
             // RS
-            for (int i = 0; i < 6; i++)
+            int RSNum = lookupRegister(registers, 6, RS);
+            if (RSNum == -1)
             {
-                if (registers[i].address == RS)
-                {
-                    cout << registers[i].reg << ", ";
-                    break;
-                }
+                cout << "Error: RS not found" << endl;
+                return -1;
             }
+            cout << registers[RSNum].reg << ", ";
+
             // RT
-            for (int i = 0; i < 6; i++)
+            int RTNum = lookupRegister(registers, 6, RT);
+            if (RTNum == -1)
             {
-                if (registers[i].address == RT)
-                {
-                    cout << registers[i].reg;
-                    break;
-                }
+                cout << "Error: RT not found" << endl;
+                return -1;
             }
+            cout << registers[RTNum].reg;
         }
+        // I-Type
         else
         {
-            //cout << "I-Type" << endl;
             int immediate = findImmediate(binLine);
-            for (int i = 0; i < 5; i++)
+            
+            // instruction
+            int instNum = lookupI(instr, 5, opCode);
+            if (instNum == -1)
             {
-                if (instr[i].code == opCode) {
-                    cout << instr[i].inst << " ";
-                    instName = instr[i].inst;
-                    break;
-                }
+                cout << "Error: instruction not found" << endl;
+                return -1;
             }
+            cout << instr[instNum].inst << " ";
+
             // RT
-            for (int i = 0; i < 6; i++)
+            int RTNum = lookupRegister(registers, 6, RT);
+            if (RTNum == -1)
             {
-                if (registers[i].address == RT)
-                {
-                    cout << registers[i].reg << ", ";
-                    break;
-                }
+                cout << "Error: RT not found" << endl;
+                return -1;
             }
-            if (instName == "addi")
+            cout << registers[RTNum].reg << ", ";
+
+            if (instr[instNum].inst == "addi")
             {
                 // RS
-                for (int i = 0; i < 6; i++)
+                int RSNum = lookupRegister(registers, 6, RS);
+                if (RSNum == -1)
                 {
-                    if (registers[i].address == RS)
-                    {
-                        cout << registers[i].reg << ", ";
-                        break;
-                    }
+                    cout << "Error: RS not found" << endl;
+                    return -1;
                 }
+                cout << registers[RSNum].reg << ", ";
+
                 // immediate
                 cout << immediate;
             }
@@ -167,15 +176,15 @@ int main()
             {
                 // immediate
                 cout << immediate;
+
                 // RS
-                for (int i = 0; i < 6; i++)
+                int RSNum = lookupRegister(registers, 6, RS);
+                if (RSNum == -1)
                 {
-                    if (registers[i].address == RS)
-                    {
-                        cout << "(" << registers[i].reg << ")";
-                        break;
-                    }
+                    cout << "Error: RS not found" << endl;
+                    return -1;
                 }
+                cout << "(" << registers[RSNum].reg << ")";
             }
         }
         cout << endl;
@@ -303,4 +312,40 @@ int findImmediate(string binStr)
 {
     string codeStr = binStr.substr(16, 16);
     return stoi(codeStr, nullptr, 2);
+}
+
+int lookupR(const Instructions instr[], int numInst, int opCode, int functCode)
+{
+    for (int i = 0; i < numInst; i++)
+    {
+        if (instr[i].code == opCode && instr[i].functionCode == functCode)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int lookupI(const Instructions instr[], int numInst, int opCode)
+{
+    for (int i = 0; i < numInst; i++)
+    {
+        if (instr[i].code == opCode)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int lookupRegister(const RegTable registers[], int numRegs, int regAdd)
+{
+    for (int i = 0; i < numRegs; i++)
+    {
+        if (registers[i].address == regAdd)
+        {
+            return i;
+        }
+    }
+    return -1;
 }
